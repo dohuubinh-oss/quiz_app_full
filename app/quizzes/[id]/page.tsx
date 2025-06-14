@@ -22,6 +22,7 @@ import {
   StopOutlined,
   LinkOutlined,
   DeleteOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { useQuiz } from "@/api/hooks/useQuiz";
 import { useQuizQuestions } from "@/api/hooks/useQuestions";
@@ -74,6 +75,12 @@ export default function EditQuizPage() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+
+  // Modal states
+  const [deleteQuestionModalVisible, setDeleteQuestionModalVisible] =
+    useState(false);
+  const [deleteQuizModalVisible, setDeleteQuizModalVisible] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
 
   // Set initial preview image from quiz data
   useEffect(() => {
@@ -168,21 +175,27 @@ export default function EditQuizPage() {
     setShowQuestionForm(true);
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
-    Modal.confirm({
-      title: "Are you sure you want to delete this question?",
-      content: "This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      onOk: async () => {
-        try {
-          await deleteQuestionMutation.mutateAsync(questionId);
-          message.success("Question deleted successfully");
-        } catch (error) {
-          message.error("Failed to delete question");
-        }
-      },
-    });
+  const handleDeleteQuestionClick = (questionId: string) => {
+    setQuestionToDelete(questionId);
+    setDeleteQuestionModalVisible(true);
+  };
+
+  const handleDeleteQuestionConfirm = async () => {
+    if (!questionToDelete) return;
+
+    try {
+      await deleteQuestionMutation.mutateAsync(questionToDelete);
+      message.success("Question deleted successfully");
+      setDeleteQuestionModalVisible(false);
+      setQuestionToDelete(null);
+    } catch (error) {
+      message.error("Failed to delete question");
+    }
+  };
+
+  const handleDeleteQuestionCancel = () => {
+    setDeleteQuestionModalVisible(false);
+    setQuestionToDelete(null);
   };
 
   const handleQuestionSubmit = async (data: any) => {
@@ -257,24 +270,23 @@ export default function EditQuizPage() {
     },
   };
 
-  const handleDeleteQuiz = () => {
-    Modal.confirm({
-      title: "Delete Quiz",
-      content: `Are you sure you want to delete "${quiz?.title}"? This action cannot be undone and will remove all questions.`,
-      okText: "Delete Quiz",
-      okType: "danger",
-      cancelText: "Cancel",
-      icon: <DeleteOutlined className="text-red-500" />,
-      onOk: async () => {
-        try {
-          await deleteQuizMutation.mutateAsync(quizId);
-          message.success("Quiz deleted successfully");
-          router.push("/quizzes");
-        } catch (error) {
-          message.error("Failed to delete quiz");
-        }
-      },
-    });
+  const handleDeleteQuizClick = () => {
+    setDeleteQuizModalVisible(true);
+  };
+
+  const handleDeleteQuizConfirm = async () => {
+    try {
+      await deleteQuizMutation.mutateAsync(quizId);
+      message.success("Quiz deleted successfully");
+      setDeleteQuizModalVisible(false);
+      router.push("/quizzes");
+    } catch (error) {
+      message.error("Failed to delete quiz");
+    }
+  };
+
+  const handleDeleteQuizCancel = () => {
+    setDeleteQuizModalVisible(false);
   };
 
   if (isLoadingQuiz || isLoadingQuestions) {
@@ -373,7 +385,7 @@ export default function EditQuizPage() {
               <Button
                 danger
                 icon={<DeleteOutlined />}
-                onClick={handleDeleteQuiz}
+                onClick={handleDeleteQuizClick}
                 size="large"
                 className="hover:shadow-lg transition-all duration-200"
               >
@@ -550,12 +562,13 @@ export default function EditQuizPage() {
             <SortableQuestionList
               questions={questions}
               onEdit={handleEditQuestion}
-              onDelete={handleDeleteQuestion}
+              onDelete={handleDeleteQuestionClick}
               onReorder={handleReorderQuestions}
             />
           </div>
         </Card>
 
+        {/* Image Preview Modal */}
         <Modal
           open={previewVisible}
           title="Cover Image Preview"
@@ -571,6 +584,50 @@ export default function EditQuizPage() {
               className="rounded-lg"
             />
           )}
+        </Modal>
+
+        {/* Delete Question Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <ExclamationCircleOutlined className="text-red-500" />
+              <span>Delete Question</span>
+            </div>
+          }
+          open={deleteQuestionModalVisible}
+          onOk={handleDeleteQuestionConfirm}
+          onCancel={handleDeleteQuestionCancel}
+          okText="Delete"
+          cancelText="Cancel"
+          okType="danger"
+          confirmLoading={deleteQuestionMutation.isPending}
+        >
+          <p>Are you sure you want to delete this question?</p>
+          <p className="text-gray-500">This action cannot be undone.</p>
+        </Modal>
+
+        {/* Delete Quiz Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <DeleteOutlined className="text-red-500" />
+              <span>Delete Quiz</span>
+            </div>
+          }
+          open={deleteQuizModalVisible}
+          onOk={handleDeleteQuizConfirm}
+          onCancel={handleDeleteQuizCancel}
+          okText="Delete Quiz"
+          cancelText="Cancel"
+          okType="danger"
+          confirmLoading={deleteQuizMutation.isPending}
+        >
+          <p>
+            Are you sure you want to delete <strong>"{quiz?.title}"</strong>?
+          </p>
+          <p className="text-gray-500">
+            This action cannot be undone and will remove all questions.
+          </p>
         </Modal>
       </div>
     </div>
