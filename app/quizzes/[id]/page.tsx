@@ -232,20 +232,16 @@ export default function EditQuizPage() {
   };
 
   const handleImageChange = (info: any) => {
-    if (info.file.status === "uploading") {
-      return;
-    }
-    if (info.file.status === "done") {
-      // We're not actually uploading here, just storing the file
-      setCoverImage(info.file.originFileObj);
+    console.log(info);
+    // We're not actually uploading here, just storing the file
+    setCoverImage(info.file);
 
-      // Create a preview URL
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(info.file.originFileObj);
-    }
+    // Create a preview URL
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(info.file);
   };
 
   const uploadProps = {
