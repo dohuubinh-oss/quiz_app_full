@@ -4,6 +4,7 @@ import "./globals.css";
 import { App } from "antd";
 import ClientLayout from "./ClientLayout";
 import { AuthProvider } from "@/lib/auth";
+import NextAuthProvider from "./NextAuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,11 +12,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <App>
-            <ClientLayout>{children}</ClientLayout>
-          </App>
-        </AuthProvider>
+        <NextAuthProvider>
+          <AuthProvider>
+            <App>
+              <ClientLayout>{children}</ClientLayout>
+            </App>
+          </AuthProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

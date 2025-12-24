@@ -1,173 +1,108 @@
-"use client"
+'use client';
 
-import type React from "react"
+import type React from 'react';
+import { createContext, useContext, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
+import { Spin } from 'antd';
+import type { User } from 'next-auth';
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import type { Session, User } from "@supabase/supabase-js"
-import { Spin } from "antd"
-
+// Define the shape of the AuthContext
 type AuthContextType = {
-  user: User | null
-  session: Session | null
-  isLoading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: any }>
-  signUp: (email: string, password: string) => Promise<{ error: any; data: any }>
-  signOut: () => Promise<void>
-}
+  user: User | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error?: string | undefined; url?: string | null | undefined; ok?: boolean; status?: number; } | undefined>;
+  signUp: (email: string, password: string) => Promise<any>;
+  signOut: () => Promise<void>;
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+// Create the AuthContext
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// AuthProvider component that wraps the application
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
-
-  useEffect(() => {
-    // Get session from Supabase
-    const getSession = async () => {
-      setIsLoading(true)
-      const { data, error } = await supabase.auth.getSession()
-
-      if (!error) {
-        setSession(data.session)
-        setUser(data.session?.user || null)
-      }
-
-      setIsLoading(false)
-    }
-
-    getSession()
-
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session)
-      setUser(session?.user || null)
-      setIsLoading(false)
-    })
-
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
-  }, [])
+  const { data: session, status } = useSession();
+  const isLoading = status === 'loading';
+  const user = session?.user ?? null;
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (!error) {
-      router.push("/quizzes")
-    }
-    return { error }
-  }
+    const result = await nextAuthSignIn('credentials', {
+      redirect: false, // Do not redirect automatically
+      email,
+      password,
+    });
+    return result;
+  };
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    return { data, error }
-  }
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        // Create an error object similar to what signIn might return
+        return { error: data.message || 'Sign up failed.' };
+    }
+    return { data }; // Success
+  };
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
+    await nextAuthSignOut({ redirect: false });
+    // You can add a router.push here if you want to redirect after sign out
+  };
 
   const value = {
     user,
-    session,
     isLoading,
     signIn,
     signUp,
     signOut,
-  }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+        <AuthGuard>{children}</AuthGuard>
+    </AuthContext.Provider>
+  );
 }
 
+// Custom hook to use the AuthContext
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }
 
+// AuthGuard component to protect routes
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isCheckingPublishedQuiz, setIsCheckingPublishedQuiz] = useState(false)
-  const [isPublishedQuiz, setIsPublishedQuiz] = useState(false)
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Check if the route is a published quiz route
-    const checkIfPublishedQuiz = async () => {
-      // Check if the route matches the pattern /quizzes/[id]/published
-      const publishedQuizMatch = pathname.match(/\/quizzes\/([^/]+)\/published/)
+    // Public routes that do not require authentication
+    const isPublicRoute = 
+        pathname === '/login' ||
+        pathname.startsWith('/_next'); // Allow Next.js internal paths
 
-      if (publishedQuizMatch) {
-        setIsCheckingPublishedQuiz(true)
-        const quizId = publishedQuizMatch[1]
-
-        try {
-          // Check if the quiz is published
-          const { data, error } = await supabase.from("quizzes").select("published").eq("id", quizId).single()
-
-          if (!error && data && data.published) {
-            setIsPublishedQuiz(true)
-          } else {
-            setIsPublishedQuiz(false)
-          }
-        } catch (error) {
-          console.error("Error checking if quiz is published:", error)
-          setIsPublishedQuiz(false)
-        }
-
-        setIsCheckingPublishedQuiz(false)
-      } else {
-        setIsPublishedQuiz(false)
-        setIsCheckingPublishedQuiz(false)
-      }
+    if (!isLoading && !user && !isPublicRoute) {
+      router.push('/login');
     }
+  }, [user, isLoading, router, pathname]);
 
-    checkIfPublishedQuiz()
-  }, [pathname])
-
-  useEffect(() => {
-    // Only redirect if we're not checking a published quiz and we're not loading
-    if (!isLoading && !isCheckingPublishedQuiz) {
-      // Check if the route should be protected
-      const isPublicRoute =
-        pathname === "/login" ||
-        pathname === "/signup" ||
-        pathname === "/" ||
-        pathname.startsWith("/_next") ||
-        isPublishedQuiz // Allow access to published quizzes
-
-      if (!user && !isPublicRoute) {
-        router.push("/login")
-      }
-    }
-  }, [user, isLoading, router, pathname, isCheckingPublishedQuiz, isPublishedQuiz])
-
-  if (isLoading || isCheckingPublishedQuiz) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Spin size="large" />
       </div>
-    )
+    );
   }
 
-  // For protected routes, only render children if authenticated or if it's a published quiz
-  const isProtectedRoute =
-    pathname !== "/login" &&
-    pathname !== "/signup" &&
-    !pathname.startsWith("/_next") &&
-    pathname !== "/" &&
-    !isPublishedQuiz
-
-  if (isProtectedRoute && !user) {
-    return null
-  }
-
-  return <>{children}</>
+  return <>{children}</>;
 }
