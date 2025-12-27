@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -34,45 +35,50 @@ export default function NewQuizPage() {
 
   const handleCreateQuiz = async (values: any) => {
     try {
-      setUploading(true);
-      let coverImageUrl = null;
-
-      // Upload cover image if selected
-      if (coverImage && user) {
-        coverImageUrl = await uploadCoverImage(coverImage, user.id);
-        if (!coverImageUrl) {
-          message.error("Failed to upload cover image");
-          setUploading(false);
-          return;
+        if (!user) {
+            message.error("You must be logged in to create a quiz.");
+            return;
         }
-      }
 
-      const newQuiz = await createQuizMutation.mutateAsync({
-        title: values.title,
-        description: values.description,
-        published: false,
-        cover_image: coverImageUrl,
-        author_id: user?.id || "",
-      });
+        setUploading(true);
+        let coverImageUrl = null;
 
-      message.success("Quiz created successfully");
-      router.push(`/quizzes/${newQuiz.id}`);
+        // Tải ảnh bìa lên nếu có
+        if (coverImage) {
+            coverImageUrl = await uploadCoverImage(coverImage);
+            if (!coverImageUrl) {
+                message.error("Failed to upload cover image");
+                setUploading(false);
+                return;
+            }
+        }
+
+        const newQuiz = await createQuizMutation.mutateAsync({
+            title: values.title,
+            description: values.description,
+            published: false,
+            cover_image: coverImageUrl, // Lưu URL của ảnh đã tải lên
+            author_id: user.id,
+        });
+
+        message.success("Quiz created successfully");
+        router.push(`/quizzes/${newQuiz.id}`);
     } catch (error) {
-      message.error("Failed to create quiz");
-      setUploading(false);
+        message.error("Failed to create quiz");
+        setUploading(false);
     }
   };
 
   const handleImageChange = (info: any) => {
-    // We're not actually uploading here, just storing the file
-    setCoverImage(info.file);
+    const file = info.file.originFileObj || info.file;
+    setCoverImage(file);
 
-    // Create a preview URL
+    // Tạo URL xem trước
     const reader = new FileReader();
     reader.onload = () => {
       setPreviewImage(reader.result as string);
     };
-    reader.readAsDataURL(info.file);
+    reader.readAsDataURL(file);
   };
 
   const uploadProps = {
@@ -88,13 +94,9 @@ export default function NewQuizPage() {
       if (!isLt2M) {
         message.error("Image must be smaller than 2MB!");
       }
-      return isImage && isLt2M ? false : Upload.LIST_IGNORE;
+      return false; // Luôn trả về false để xử lý tải lên thủ công
     },
-    customRequest: ({ onSuccess }: any) => {
-      setTimeout(() => {
-        onSuccess("ok", null);
-      }, 0);
-    },
+    onChange: handleImageChange,
   };
 
   return (
@@ -136,7 +138,6 @@ export default function NewQuizPage() {
                   />
                 </div>
                 <Button
-                  icon={<PlusOutlined />}
                   onClick={() => {
                     setCoverImage(null);
                     setPreviewImage(null);
@@ -146,7 +147,7 @@ export default function NewQuizPage() {
                 </Button>
               </div>
             ) : (
-              <Dragger {...uploadProps} onChange={handleImageChange}>
+              <Dragger {...uploadProps}>
                 <p className="ant-upload-drag-icon">
                   <InboxOutlined />
                 </p>

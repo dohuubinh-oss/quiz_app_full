@@ -7,14 +7,14 @@ import Quiz from '@/models/Quiz';
 import mongoose from 'mongoose';
 
 // POST: Tạo một câu hỏi mới cho một quiz
-export async function POST(req: NextRequest, { params }: { params: { quizId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { quizId } = params;
-  if (!mongoose.Types.ObjectId.isValid(quizId)) {
+  const { id } = params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
   }
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { quizId: str
     }
 
     await dbConnect();
-    const quiz = await Quiz.findById(quizId);
+    const quiz = await Quiz.findById(id);
     if (!quiz) {
       return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
     }
@@ -59,14 +59,14 @@ export async function POST(req: NextRequest, { params }: { params: { quizId: str
 }
 
 // PUT: Sắp xếp lại các câu hỏi cho một quiz
-export async function PUT(req: NextRequest, { params }: { params: { quizId: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { quizId } = params;
-    if (!mongoose.Types.ObjectId.isValid(quizId)) {
+    const { id } = params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
         return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
     }
 
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest, { params }: { params: { quizId: stri
         }
 
         await dbConnect();
-        const quiz = await Quiz.findById(quizId);
+        const quiz = await Quiz.findById(id);
         if (!quiz) {
             return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
         }

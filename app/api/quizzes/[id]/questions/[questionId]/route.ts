@@ -7,14 +7,14 @@ import Quiz from '@/models/Quiz';
 import mongoose from 'mongoose';
 
 // PUT: Cập nhật một câu hỏi cụ thể
-export async function PUT(req: NextRequest, { params }: { params: { quizId: string, questionId: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string, questionId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { quizId, questionId } = params;
-  if (!mongoose.Types.ObjectId.isValid(quizId) || !mongoose.Types.ObjectId.isValid(questionId)) {
+  const { id, questionId } = params;
+  if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(questionId)) {
     return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
   }
 
@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: { quizId: stri
     const body = await req.json();
 
     await dbConnect();
-    const quiz = await Quiz.findById(quizId);
+    const quiz = await Quiz.findById(id);
     if (!quiz) {
       return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
     }
@@ -52,20 +52,20 @@ export async function PUT(req: NextRequest, { params }: { params: { quizId: stri
 }
 
 // DELETE: Xóa một câu hỏi cụ thể
-export async function DELETE(req: NextRequest, { params }: { params: { quizId: string, questionId: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string, questionId: string } }) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { quizId, questionId } = params;
-    if (!mongoose.Types.ObjectId.isValid(quizId) || !mongoose.Types.ObjectId.isValid(questionId)) {
+    const { id, questionId } = params;
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(questionId)) {
         return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
     }
 
     try {
         await dbConnect();
-        const quiz = await Quiz.findById(quizId);
+        const quiz = await Quiz.findById(id);
         if (!quiz) {
             return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
         }

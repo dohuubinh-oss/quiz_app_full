@@ -1,50 +1,42 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/options';
+import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import fs from 'fs/promises';
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+export async function POST(request: NextRequest) {
+  const data = await request.formData();
+  const file: File | null = data.get('file') as unknown as File;
 
-  if (!session) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!file) {
+    return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
   }
 
+  // Chuyển đổi tệp thành Buffer
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  // Tạo một tên tệp duy nhất để tránh ghi đè
+  const fileExtension = path.extname(file.name);
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+  const filename = `${uniqueSuffix}${fileExtension}`;
+
+  // Xác định đường dẫn đích
+  const uploadDir = path.join(process.cwd(), 'public/uploads');
+  const relativePath = `/uploads/${filename}`;
+  const fullPath = path.join(uploadDir, filename);
+
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    // Đảm bảo thư mục đích tồn tại
+    await mkdir(uploadDir, { recursive: true });
 
-    if (!file) {
-      return NextResponse.json({ message: 'No file uploaded.' }, { status: 400 });
-    }
+    // Ghi tệp vào hệ thống tệp
+    await writeFile(fullPath, buffer);
 
-    // Chuyển đổi tệp thành Buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    // Tạo tên tệp duy nhất để tránh ghi đè
-    const filename = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-
-    // Xác định đường dẫn đến thư mục public/uploads
-    // process.cwd() trỏ đến thư mục gốc của dự án
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-
-    // Đảm bảo thư mục upload tồn tại, tạo nếu chưa có
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    // Ghi tệp vào thư mục
-    const filePath = path.join(uploadDir, filename);
-    await fs.writeFile(filePath, buffer);
-
-    // Tạo URL công khai để truy cập tệp
-    const publicUrl = `/uploads/${filename}`;
-
-    // Trả về URL công khai trong response
-    return NextResponse.json({ imageUrl: publicUrl }, { status: 200 });
+    // Trả về đường dẫn công khai
+    return NextResponse.json({ success: true, path: relativePath });
 
   } catch (error) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ message: 'An error occurred during file upload.' }, { status: 500 });
+    console.error('Failed to save file:', error);
+    return NextResponse.json({ success: false, error: 'Failed to save file' }, { status: 500 });
   }
 }
