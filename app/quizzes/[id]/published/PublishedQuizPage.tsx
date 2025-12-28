@@ -1,6 +1,6 @@
+
 'use client';
 
-import { useParams } from "next/navigation";
 import { Typography, Button, Spin, Result, Card } from "antd";
 import { ArrowLeftOutlined, HomeOutlined } from "@ant-design/icons";
 import { useQuiz } from "@/api/hooks/useQuiz";
@@ -10,10 +10,7 @@ import Image from "next/image";
 
 const { Title, Paragraph } = Typography;
 
-export default function PublishedQuizPage() {
-  const params = useParams();
-  const quizId = params.id as string;
-
+export default function PublishedQuizPage({ quizId }: { quizId: string }) {
   const { data: quiz, isLoading: isLoadingQuiz } = useQuiz(quizId);
 
   if (isLoadingQuiz) {

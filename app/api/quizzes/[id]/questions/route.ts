@@ -6,24 +6,22 @@ import dbConnect from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
 import mongoose from 'mongoose';
 
-// POST: Tạo một câu hỏi mới cho một quiz
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+// POST: Create a new question for a quiz
+export async function POST(req: NextRequest, { params }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
   }
 
   try {
     const body = await req.json();
-    // Đổi tên `text` thành `questionText` để rõ ràng hơn
     const { questionText, options, correctOptionIndex } = body;
 
-    // Xác thực đầu vào
     if (!questionText || !options || !Array.isArray(options) || options.length < 2 || correctOptionIndex === undefined) {
       return NextResponse.json({ message: 'Missing or invalid required question fields' }, { status: 400 });
     }
@@ -38,7 +36,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    // **SỬA LỖI: Biến đổi `options` và `correctOptionIndex` thành cấu trúc đúng theo Schema**
     const formattedOptions = options.map((optionText: string, index: number) => ({
       optionText,
       isCorrect: index === correctOptionIndex,
@@ -46,15 +43,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const newQuestion = {
       _id: new mongoose.Types.ObjectId(),
-      questionText, // Sử dụng tên trường đúng
-      options: formattedOptions, // Sử dụng mảng đã được định dạng
+      questionText: questionText, // Use camelCase
+      options: formattedOptions,
     };
 
     quiz.questions.push(newQuestion as any);
     await quiz.save();
     
     const createdQuestion = quiz.questions[quiz.questions.length - 1];
-    return NextResponse.json({ message: 'Question added successfully', question: createdQuestion }, { status: 201 });
+    const questionObj = createdQuestion.toObject();
+
+    const result = { 
+      ...questionObj, 
+      id: questionObj._id.toString(),
+    };
+
+    return NextResponse.json({ message: 'Question added successfully', question: result }, { status: 201 });
 
   } catch (error) {
     console.error('Failed to create question', error);
@@ -62,14 +66,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-// PUT: Sắp xếp lại các câu hỏi cho một quiz
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+// PUT: Reorder questions for a quiz
+export async function PUT(req: NextRequest, { params }) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
     }

@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   Typography,
   Button,
@@ -62,10 +63,8 @@ const uploadImage = async (file: File): Promise<string | null> => {
   }
 };
 
-function EditQuizPage() {
-  const params = useParams();
+function EditQuizPage({ quizId }: { quizId: string }) {
   const router = useRouter();
-  const quizId = params.id as string;
   const { user } = useAuth();
   const { message } = App.useApp();
 
@@ -101,7 +100,6 @@ function EditQuizPage() {
     if (quiz) {
       const baseUrl = window.location.origin;
       setShareUrl(`${baseUrl}/quizzes/${quizId}/published`);
-      // Vẫn có thể dùng setFieldsValue để đồng bộ nếu có thay đổi từ bên ngoài
       form.setFieldsValue({ title: quiz.title, description: quiz.description });
     }
   }, [quiz, quizId, form]);
@@ -554,10 +552,10 @@ function EditQuizPage() {
   );
 }
 
-export default function EditQuizPageWrapper() {
+export default function EditQuizPageWrapper({ quizId }: { quizId: string }) {
   return (
     <App>
-      <EditQuizPage />
+      <EditQuizPage quizId={quizId} />
     </App>
   );
 }

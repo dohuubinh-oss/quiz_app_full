@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,10 +47,11 @@ const togglePublishStatus = async ({ id, isPublished }: { id: string; isPublishe
 export const useQuizzes = (
   page = 1,
   pageSize = 9,
+  isPublic: boolean, // This was missing
   searchTerm: string
 ) => {
   return useQuery({
-    queryKey: ["quizzes", page, pageSize, searchTerm],
+    queryKey: ["quizzes", page, pageSize, searchTerm, isPublic],
     queryFn: () => fetchQuizzes(page, pageSize, searchTerm),
   });
 };

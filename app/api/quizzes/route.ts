@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
-import mongoose from 'mongoose'; // **Thêm import mongoose**
+import mongoose from 'mongoose';
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -29,33 +29,50 @@ export async function POST(req: NextRequest) {
       coverImage,
       questions: [],
       published: false,
-      // **Chuyển đổi session.user.id sang ObjectId**
       authorId: new mongoose.Types.ObjectId(session.user.id),
     };
 
     const newQuiz = new Quiz(newQuizData);
 
     await newQuiz.save();
+    
+    const quizObj = newQuiz.toObject();
+    const result = { ...quizObj, id: quizObj._id.toString() };
 
-    return NextResponse.json(newQuiz, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
 
   } catch (error) {
     console.error('Error creating quiz:', error);
-    // Cung cấp thông báo lỗi chi tiết hơn trong môi trường development
-    const errorMessage = process.env.NODE_ENV === 'development' 
-      ? (error as Error).message 
+    const errorMessage = process.env.NODE_ENV === 'development'
+      ? (error as Error).message
       : 'Internal Server Error';
     return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const pageSize = parseInt(searchParams.get("pageSize") || "9", 10);
+    const searchTerm = searchParams.get("search") || "";
 
-    const quizzes = await Quiz.find({}).sort({ _id: -1 });
+    const query = searchTerm ? { title: { $regex: searchTerm, $options: "i" } } : {};
 
-    return NextResponse.json(quizzes, { status: 200 });
+    const total = await Quiz.countDocuments(query);
+    const quizzesFromDb = await Quiz.find(query)
+      .sort({ _id: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .lean();
+
+    const quizzes = quizzesFromDb.map(quiz => ({
+      ...quiz,
+      id: quiz._id.toString(),
+    }));
+
+    return NextResponse.json({ data: quizzes, total }, { status: 200 });
 
   } catch (error) {
     console.error('Error fetching quizzes:', error);

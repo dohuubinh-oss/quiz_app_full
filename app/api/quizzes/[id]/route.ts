@@ -3,43 +3,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
-// SỬA LỖI: Sử dụng named import cho Quiz Model
 import { Quiz } from '@/models/Quiz';
 
-// Sửa lỗi: Thay đổi chữ ký hàm để xử lý params đúng cách
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }) {
   try {
     await dbConnect();
-    // Lấy id từ params
-    const { id } = params;
-    
-    // Cải tiến: Thêm .populate('questions') để lấy dữ liệu câu hỏi
-    const quiz = await Quiz.findById(id).populate('questions');
+    const { id } = await params;
+    const quizFromDb = await Quiz.findById(id).populate('questions').lean();
 
-    if (!quiz) {
+    if (!quizFromDb) {
       return NextResponse.json({ message: 'Quiz not found' }, { status: 404 });
     }
 
-    return NextResponse.json(quiz, { status: 200 });
+    const quiz = {
+      ...quizFromDb,
+      id: quizFromDb._id.toString(),
+      questions: quizFromDb.questions.map((q: any) => ({
+        ...q,
+        id: q._id.toString(),
+      })),
+    };
 
+    return NextResponse.json(quiz, { status: 200 });
   } catch (error) {
     console.error('Error fetching quiz:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// Sửa lỗi: Thay đổi chữ ký hàm để xử lý params đúng cách
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }) {
   const session = await getServerSession(authOptions);
-
   if (!session || !session.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     await dbConnect();
-    // Lấy id từ params
-    const { id } = params;
+    const { id } = await params;
     const quiz = await Quiz.findById(id);
 
     if (!quiz) {
@@ -50,34 +50,39 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await req.json();
-    // Cải tiến bảo mật: Ngăn người dùng tự thay đổi chủ sở hữu của quiz
+    const body = await request.json();
     delete body.authorId;
-    // Không cho phép cập nhật câu hỏi trực tiếp qua endpoint này
     delete body.questions;
+    delete body._id;
+    delete body.id;
 
-    const updatedQuiz = await Quiz.findByIdAndUpdate(id, body, { new: true });
+    const updatedQuizFromDb = await Quiz.findByIdAndUpdate(id, body, { new: true }).lean();
+    
+    if (!updatedQuizFromDb) {
+      return NextResponse.json({ message: 'Quiz not found after update' }, { status: 404 });
+    }
+
+    const updatedQuiz = {
+      ...updatedQuizFromDb,
+      id: updatedQuizFromDb._id.toString(),
+    };
 
     return NextResponse.json(updatedQuiz, { status: 200 });
-
   } catch (error) {
     console.error('Error updating quiz:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// Sửa lỗi: Thay đổi chữ ký hàm để xử lý params đúng cách
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }) {
   const session = await getServerSession(authOptions);
-
   if (!session || !session.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     await dbConnect();
-    // Lấy id từ params
-    const { id } = params;
+    const { id } = await params;
     const quiz = await Quiz.findById(id);
 
     if (!quiz) {
@@ -89,9 +94,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await Quiz.findByIdAndDelete(id);
-
     return NextResponse.json({ message: 'Quiz deleted successfully' }, { status: 200 });
-
   } catch (error) {
     console.error('Error deleting quiz:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });

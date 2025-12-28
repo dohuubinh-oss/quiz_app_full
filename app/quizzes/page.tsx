@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Typography, Row, Col, Spin, Pagination, Button, Input } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
-import QuizCard from "@/components/quiz/QuizCard";
-import { useQuizzes } from "@/api/hooks/useQuizzes";
-import { useAuth } from "@/lib/auth";
-import Link from "next/link";
+import { useState } from 'react';
+import { Typography, Row, Col, Spin, Pagination, Button, Input } from 'antd';
+import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import QuizCard from '@/components/quiz/QuizCard';
+import { useQuizzes } from '@/api/hooks/useQuizzes';
+import { useAuth } from '@/lib/auth';
+import Link from 'next/link';
 
 const { Title, Paragraph } = Typography;
 
 export default function QuizzesPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const pageSize = 9; // 3 quizzes per row, 3 rows
   const { user } = useAuth();
 
@@ -27,7 +27,7 @@ export default function QuizzesPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     // Scroll to top when page changes
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (error) {
@@ -63,7 +63,7 @@ export default function QuizzesPage() {
               <Paragraph className="text-xl text-gray-600 mb-8 max-w-md mx-auto">
                 {user
                   ? "Ready to create your first quiz? Let's get started!"
-                  : "Discover amazing quizzes created by our community!"}
+                  : 'Discover amazing quizzes created by our community!'}
               </Paragraph>
             </div>
             {user && (
@@ -151,7 +151,7 @@ export default function QuizzesPage() {
         {/* Quiz Grid */}
         <div
           className={`transition-all duration-500 ${
-            isFetching ? "opacity-60" : "opacity-100"
+            isFetching ? 'opacity-60' : 'opacity-100'
           }`}
         >
           <Row gutter={[32, 32]}>

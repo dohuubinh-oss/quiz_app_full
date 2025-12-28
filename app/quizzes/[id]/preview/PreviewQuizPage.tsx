@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Typography, Button, Spin, Space, App, Card } from 'antd';
 import { EditOutlined, CheckOutlined } from '@ant-design/icons';
 import { useQuiz } from '@/api/hooks/useQuiz';
@@ -12,18 +13,14 @@ import Image from 'next/image';
 
 const { Title, Paragraph } = Typography;
 
-function PreviewQuizPage() {
-  const params = useParams();
+function PreviewQuizPage({ quizId }: { quizId: string }) {
   const router = useRouter();
-  const quizId = params.id as string;
   const { user } = useAuth();
   const { message } = App.useApp();
 
-  // THAY ĐỔI: Chỉ cần hook useQuiz. Đã xóa useQuizQuestions.
   const { data: quiz, isLoading: isLoadingQuiz } = useQuiz(quizId);
   const togglePublishMutation = useTogglePublishQuiz();
 
-  // THAY ĐỔI: Kiểm tra quyền sở hữu với `authorId`
   useEffect(() => {
     if (quiz && user && quiz.authorId.toString() !== user.id) {
       message.error("You don't have permission to preview this quiz");
@@ -31,7 +28,6 @@ function PreviewQuizPage() {
     }
   }, [quiz, user, router, message]);
   
-  // THAY ĐỔI: Lấy câu hỏi trực tiếp từ quiz data
   const questions = quiz?.questions || [];
 
   const handlePublish = async () => {
@@ -40,7 +36,6 @@ function PreviewQuizPage() {
       return;
     }
 
-    // THAY ĐỔI: Sử dụng payload `isPublished`
     await togglePublishMutation.mutateAsync({
       id: quizId,
       isPublished: true,
@@ -49,7 +44,6 @@ function PreviewQuizPage() {
     router.push(`/quizzes/${quizId}/published`);
   };
 
-  // THAY ĐỔI: Chỉ cần isLoadingQuiz
   if (isLoadingQuiz) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -96,7 +90,6 @@ function PreviewQuizPage() {
         </Space>
       </div>
 
-      {/* THAY ĐỔI: Sử dụng `coverImage` */}
       {quiz.coverImage && (
         <Card className="mb-6 overflow-hidden shadow-sm">
           <div className="relative h-48 w-full">
@@ -114,16 +107,15 @@ function PreviewQuizPage() {
         </Card>
       )}
 
-      {/* THAY ĐỔI: Truyền `questions` từ `quiz` */}
       <QuizPreview quiz={quiz} questions={questions} readOnly={true} />
     </div>
   );
 }
 
-export default function PreviewQuizPageWrapper() {
+export default function PreviewQuizPageWrapper({ quizId }: { quizId: string }) {
   return (
     <App>
-      <PreviewQuizPage />
+      <PreviewQuizPage quizId={quizId} />
     </App>
   );
 }
