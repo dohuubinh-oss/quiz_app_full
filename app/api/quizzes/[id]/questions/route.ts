@@ -3,28 +3,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
-import { Quiz } from '@/models/Quiz';
+import { Quiz, IQuestion } from '@/models/Quiz';
 import mongoose from 'mongoose';
 
+// Define a context type for clarity and type safety
+interface RouteContext {
+  params: {
+    id: string;
+  };
+}
+
 // POST: Create a new question for a quiz
-export async function POST(req: NextRequest, { params }) {
+export async function POST(req: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = await params;
+  // Safely extracting the id from the context object.
+  // This prevents the data contamination that caused the CastError.
+  const { id } = context.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
   }
 
   try {
     const body = await req.json();
-    const { questionText, options, correctOptionIndex } = body;
-
-    if (!questionText || !options || !Array.isArray(options) || options.length < 2 || correctOptionIndex === undefined) {
-      return NextResponse.json({ message: 'Missing or invalid required question fields' }, { status: 400 });
-    }
+    const { questionText, questionType, options, correctOptionIndex, correctAnswer } = body;
 
     await dbConnect();
     const quiz = await Quiz.findById(id);
@@ -36,44 +41,57 @@ export async function POST(req: NextRequest, { params }) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const formattedOptions = options.map((optionText: string, index: number) => ({
-      optionText,
-      isCorrect: index === correctOptionIndex,
-    }));
+    // Restoring the robust logic to handle all question types.
+    let newQuestion: Partial<IQuestion> = {};
 
-    const newQuestion = {
-      _id: new mongoose.Types.ObjectId(),
-      questionText: questionText, // Use camelCase
-      options: formattedOptions,
-    };
+    if (questionType === 'two_choices' || questionType === 'four_choices') {
+      if (!questionText || !options || !Array.isArray(options) || options.length < 2 || correctOptionIndex === undefined) {
+        return NextResponse.json({ message: 'Missing required fields for multiple-choice question' }, { status: 400 });
+      }
+      const formattedOptions = options.map((optionText: string, index: number) => ({
+        optionText,
+        isCorrect: index === correctOptionIndex,
+      }));
+      newQuestion = { _id: new mongoose.Types.ObjectId(), questionText, questionType, options: formattedOptions };
+
+    } else if (questionType === 'input') {
+      if (!questionText || !correctAnswer) {
+        return NextResponse.json({ message: 'Missing required fields for text-input question' }, { status: 400 });
+      }
+      newQuestion = { _id: new mongoose.Types.ObjectId(), questionText, questionType, correctAnswer };
+
+    } else {
+      return NextResponse.json({ message: 'Invalid question type' }, { status: 400 });
+    }
 
     quiz.questions.push(newQuestion as any);
     await quiz.save();
     
     const createdQuestion = quiz.questions[quiz.questions.length - 1];
-    const questionObj = createdQuestion.toObject();
 
-    const result = { 
-      ...questionObj, 
-      id: questionObj._id.toString(),
-    };
-
-    return NextResponse.json({ message: 'Question added successfully', question: result }, { status: 201 });
+    return NextResponse.json({
+      message: 'Question added successfully',
+      question: createdQuestion.toObject(),
+    }, { status: 201 });
 
   } catch (error) {
     console.error('Failed to create question', error);
+    if (error instanceof Error) {
+      return NextResponse.json({ message: `Internal Server Error: ${error.message}` }, { status: 500 });
+    }
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
 
 // PUT: Reorder questions for a quiz
-export async function PUT(req: NextRequest, { params }) {
+export async function PUT(req: NextRequest, context: RouteContext) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
+    // Applying the same robust signature to the PUT method for consistency.
+    const { id } = context.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
     }
