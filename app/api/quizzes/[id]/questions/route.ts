@@ -20,8 +20,6 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Safely extracting the id from the context object.
-  // This prevents the data contamination that caused the CastError.
   const { id } = context.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
@@ -41,8 +39,14 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    // Restoring the robust logic to handle all question types.
-    let newQuestion: Partial<IQuestion> = {};
+    // EXPLANATION: This is the fix. We now create a complete and consistent
+    // object shape for the new question, explicitly clearing unused fields.
+    // This prevents the 'Cast to string failed' error.
+    let newQuestion: Partial<IQuestion> = {
+        _id: new mongoose.Types.ObjectId(),
+        questionText,
+        questionType,
+    };
 
     if (questionType === 'two_choices' || questionType === 'four_choices') {
       if (!questionText || !options || !Array.isArray(options) || options.length < 2 || correctOptionIndex === undefined) {
@@ -52,13 +56,15 @@ export async function POST(req: NextRequest, context: RouteContext) {
         optionText,
         isCorrect: index === correctOptionIndex,
       }));
-      newQuestion = { _id: new mongoose.Types.ObjectId(), questionText, questionType, options: formattedOptions };
+      newQuestion.options = formattedOptions;
+      newQuestion.correctAnswer = undefined; // Explicitly clear unused field
 
     } else if (questionType === 'input') {
       if (!questionText || !correctAnswer) {
         return NextResponse.json({ message: 'Missing required fields for text-input question' }, { status: 400 });
       }
-      newQuestion = { _id: new mongoose.Types.ObjectId(), questionText, questionType, correctAnswer };
+      newQuestion.correctAnswer = correctAnswer;
+      newQuestion.options = []; // Explicitly clear unused field
 
     } else {
       return NextResponse.json({ message: 'Invalid question type' }, { status: 400 });
@@ -90,7 +96,6 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Applying the same robust signature to the PUT method for consistency.
     const { id } = context.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
