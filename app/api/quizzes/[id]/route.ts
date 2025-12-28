@@ -5,10 +5,20 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
 
-export async function GET(request: NextRequest, { params }) {
+// Define a context type for clarity and type safety
+interface RouteContext {
+  params: {
+    id: string;
+  };
+}
+
+// GET: Retrieve a single quiz
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     await dbConnect();
-    const { id } = await params;
+    // EXPLANATION: Switched to the consistent 'context.params' method.
+    // No 'await' is needed here, making the code cleaner and more modern.
+    const { id } = context.params;
     const quizFromDb = await Quiz.findById(id).populate('questions').lean();
 
     if (!quizFromDb) {
@@ -31,7 +41,8 @@ export async function GET(request: NextRequest, { params }) {
   }
 }
 
-export async function PUT(request: NextRequest, { params }) {
+// PUT: Update quiz details (e.g., title, description)
+export async function PUT(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -39,7 +50,8 @@ export async function PUT(request: NextRequest, { params }) {
 
   try {
     await dbConnect();
-    const { id } = await params;
+    // EXPLANATION: Applying the same modern pattern to the PUT method.
+    const { id } = context.params;
     const quiz = await Quiz.findById(id);
 
     if (!quiz) {
@@ -51,6 +63,7 @@ export async function PUT(request: NextRequest, { params }) {
     }
 
     const body = await request.json();
+    // Sanitize input to prevent unwanted updates
     delete body.authorId;
     delete body.questions;
     delete body._id;
@@ -74,7 +87,8 @@ export async function PUT(request: NextRequest, { params }) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }) {
+// DELETE: Delete a quiz
+export async function DELETE(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -82,7 +96,8 @@ export async function DELETE(request: NextRequest, { params }) {
 
   try {
     await dbConnect();
-    const { id } = await params;
+    // EXPLANATION: Finalizing the pattern for the DELETE method.
+    const { id } = context.params;
     const quiz = await Quiz.findById(id);
 
     if (!quiz) {
