@@ -6,26 +6,31 @@ import dbConnect from '@/lib/mongodb';
 import Quiz from '@/models/Quiz';
 import mongoose from 'mongoose';
 
-// PUT: Cập nhật một câu hỏi cụ thể
-export async function PUT(req: NextRequest, { params }: { params: { id: string, questionId: string } }) {
+// Define a context type for clarity and type safety
+interface RouteContext {
+  params: {
+    id: string;
+    questionId: string;
+  };
+}
+
+// PUT: Update a specific question
+export async function PUT(req: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id, questionId } = params;
+  // EXPLANATION: Safely extracting IDs from the new context object.
+  // This fixes the 'params should be awaited' error permanently.
+  const { id, questionId } = context.params;
   if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(questionId)) {
     return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
   }
 
   try {
-    // Lấy dữ liệu mới từ body
-    const { questionText, options, correctOptionIndex } = await req.json();
-
-    // **SỬA LỖI: Thêm xác thực đầu vào tương tự như API tạo mới**
-    if (!questionText || !options || !Array.isArray(options) || options.length < 2 || correctOptionIndex === undefined) {
-      return NextResponse.json({ message: 'Missing or invalid required question fields' }, { status: 400 });
-    }
+    const body = await req.json();
+    const { questionText, questionType, options, correctOptionIndex, correctAnswer } = body;
 
     await dbConnect();
     const quiz = await Quiz.findById(id);
@@ -42,19 +47,35 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
       return NextResponse.json({ message: 'Question not found' }, { status: 404 });
     }
 
-    // **SỬA LỖI: Biến đổi dữ liệu đầu vào và cập nhật câu hỏi**
-    const formattedOptions = options.map((optionText: string, index: number) => ({
-      optionText,
-      isCorrect: index === correctOptionIndex,
-    }));
-
+    // EXPLANATION: This logic is now complete and handles all question types.
     question.questionText = questionText;
-    question.options = formattedOptions;
-    
+    question.questionType = questionType;
+
+    if (questionType === 'two_choices' || questionType === 'four_choices') {
+      if (!options || !Array.isArray(options) || correctOptionIndex === undefined) {
+        return NextResponse.json({ message: 'Missing fields for multiple-choice' }, { status: 400 });
+      }
+      const formattedOptions = options.map((optionText: string, index: number) => ({
+        optionText,
+        isCorrect: index === correctOptionIndex,
+      }));
+      question.options = formattedOptions;
+      question.correctAnswer = undefined; // Clear unused field
+
+    } else if (questionType === 'input') {
+      if (correctAnswer === undefined) {
+        return NextResponse.json({ message: 'Missing correctAnswer for input type' }, { status: 400 });
+      }
+      question.correctAnswer = correctAnswer;
+      question.options = []; // Clear unused field
+
+    } else {
+      return NextResponse.json({ message: 'Invalid question type' }, { status: 400 });
+    }
+
     await quiz.save();
     
-    // Trả về câu hỏi đã được cập nhật
-    return NextResponse.json({ message: 'Question updated successfully', question }, { status: 200 });
+    return NextResponse.json({ message: 'Question updated successfully', question: question.toObject() }, { status: 200 });
 
   } catch (error) {
     console.error('Failed to update question', error);
@@ -62,14 +83,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string, 
   }
 }
 
-// DELETE: Xóa một câu hỏi cụ thể
-export async function DELETE(req: NextRequest, { params }: { params: { id: string, questionId: string } }) {
+// DELETE: Delete a specific question
+export async function DELETE(req: NextRequest, context: RouteContext) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, questionId } = params;
+    // EXPLANATION: Applying the same robust fix to the DELETE method.
+    const { id, questionId } = context.params;
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(questionId)) {
         return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
     }
@@ -87,10 +109,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         const question = quiz.questions.id(questionId);
         if (!question) {
-            return NextResponse.json({ message: 'Question already deleted or not found' }, { status: 200 });
+            // If the question is already gone, we can consider the job done.
+            return NextResponse.json({ message: 'Question not found' }, { status: 404 });
         }
 
-        // Sử dụng Mongoose để xóa sub-document
         question.deleteOne();
 
         await quiz.save();
