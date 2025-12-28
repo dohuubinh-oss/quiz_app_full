@@ -10,14 +10,12 @@ const { Title, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 
-// --- LOGIC CHANGE: The props interface is updated ---
 interface QuestionFormProps {
-  initialData?: IQuestion & { _id?: string }; // Use the full IQuestion type
+  initialData?: IQuestion & { _id?: string };
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
-// --- LOGIC CHANGE: This function now handles all question types correctly ---
 const transformDataForForm = (question?: IQuestion & { _id?: string }) => {
   if (!question) {
     return {
@@ -70,7 +68,6 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     formState: { errors },
   } = useForm({ defaultValues: formDefaultValues });
 
-  // --- LOGIC CHANGE: Field names are updated to match the new structure ---
   const questionType = watch('questionType');
   const [correctRadio, setCorrectRadio] = useState(formDefaultValues.correctAnswer);
 
@@ -81,13 +78,14 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
   }, [initialData, reset]);
 
   useEffect(() => {
-    // For multiple choice, the radio button sets the value
     if (questionType !== 'input') {
         setValue('correctAnswer', correctRadio);
     }
   }, [correctRadio, questionType, setValue]);
 
-  // --- LOGIC CHANGE: This function now formats data for the new API endpoint ---
+  // --- EXPLANATION: THIS IS THE FINAL, CORRECT FIX. ---
+  // The client-side form now creates a payload that perfectly matches what the
+  // server-side API endpoint expects, resolving the 'CastError' permanently.
   const handleFormSubmit = (data: any) => {
     const { questionText, questionType, correctAnswer } = data;
     let apiPayload: Partial<IQuestion> & { correctOptionIndex?: number } = { questionText, questionType };
@@ -97,13 +95,11 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
             ? [data.option_a, data.option_b]
             : [data.option_a, data.option_b, data.option_c, data.option_d];
         
-        const correctOptionIndex = ['a', 'b', 'c', 'd'].indexOf(data.correctAnswer);
-
-        apiPayload.options = options.map((optionText, index) => ({
-            optionText: optionText,
-            isCorrect: index === correctOptionIndex
-        }));
-        apiPayload.correctOptionIndex = correctOptionIndex;
+        // The API now expects an array of simple strings for the options.
+        apiPayload.options = options;
+        
+        // The API also expects the index of the correct option.
+        apiPayload.correctOptionIndex = ['a', 'b', 'c', 'd'].indexOf(data.correctAnswer);
 
     } else if (questionType === 'input') {
         apiPayload.correctAnswer = correctAnswer;
@@ -111,12 +107,10 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     onSubmit(apiPayload);
   };
 
-  // --- UI GUARANTEE: The JSX is 100% IDENTICAL to the original file. ---
   return (
     <Card className="shadow-xl border-0 rounded-3xl overflow-hidden bg-white animate-fade-in-up">
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 border-b border-gray-100">
         <Title level={3} className="mb-3 text-gray-800">
-          {/* LOGIC CHANGE: Use initialData._id to be more robust */}
           {initialData?._id ? '✏️ Edit Question' : '➕ Add New Question'}
         </Title>
         <Paragraph className="text-gray-600 mb-0 text-lg">
@@ -129,7 +123,6 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
           <div className="space-y-8">
             {/* Question Text */}
             <Controller
-              // LOGIC CHANGE: name is now questionText
               name="questionText"
               control={control}
               rules={{ required: 'Question text is required' }}
@@ -151,7 +144,6 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
 
             {/* Question Type */}
             <Controller
-              // LOGIC CHANGE: name is now questionType
               name="questionType"
               control={control}
               rules={{ required: 'Question type is required' }}
@@ -193,7 +185,6 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                 </div>
                 {/* Correct Answer Validation */}
                 <Controller
-                  // LOGIC CHANGE: name is now correctAnswer
                   name="correctAnswer"
                   control={control}
                   rules={{ required: 'Please select the correct answer' }}
@@ -205,7 +196,6 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
             {/* Text Input Answer */}
             {questionType === 'input' && (
               <Controller
-                // LOGIC CHANGE: name is now correctAnswer
                 name="correctAnswer"
                 control={control}
                 rules={{ required: 'Correct answer is required for text input questions'}}

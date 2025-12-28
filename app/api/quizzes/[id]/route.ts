@@ -5,20 +5,18 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
 
-// Define a context type for clarity and type safety
+// The context type remains simple.
 interface RouteContext {
-  params: {
-    id: string;
-  };
+  params: { id: string };
 }
 
-// GET: Retrieve a single quiz
+// --- EXPLANATION: The fix suggested by the user's article is being applied. ---
+// The core issue is that `context.params` must be awaited before its properties can be accessed in newer Next.js versions.
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     await dbConnect();
-    // EXPLANATION: Switched to the consistent 'context.params' method.
-    // No 'await' is needed here, making the code cleaner and more modern.
-    const { id } = context.params;
+    // --- FIX: Awaiting `context.params` as per the article's recommendation. ---
+    const { id } = await context.params;
     const quizFromDb = await Quiz.findById(id).populate('questions').lean();
 
     if (!quizFromDb) {
@@ -41,7 +39,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
-// PUT: Update quiz details (e.g., title, description)
+// --- EXPLANATION: Applying the same `await context.params` fix to the PUT handler. ---
 export async function PUT(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -50,8 +48,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     await dbConnect();
-    // EXPLANATION: Applying the same modern pattern to the PUT method.
-    const { id } = context.params;
+    // --- FIX: Awaiting `context.params`. ---
+    const { id } = await context.params;
     const quiz = await Quiz.findById(id);
 
     if (!quiz) {
@@ -63,13 +61,22 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const body = await request.json();
-    // Sanitize input to prevent unwanted updates
-    delete body.authorId;
-    delete body.questions;
-    delete body._id;
-    delete body.id;
 
-    const updatedQuizFromDb = await Quiz.findByIdAndUpdate(id, body, { new: true }).lean();
+    const updatePayload: { [key: string]: any } = {};
+    if (body.title !== undefined) updatePayload.title = body.title;
+    if (body.description !== undefined) updatePayload.description = body.description;
+    if (body.coverImage !== undefined) updatePayload.coverImage = body.coverImage;
+    if (body.isPublished !== undefined) updatePayload.isPublished = body.isPublished;
+
+    if (Object.keys(updatePayload).length === 0) {
+        return NextResponse.json({ message: "No update fields provided" }, { status: 400 });
+    }
+
+    const updatedQuizFromDb = await Quiz.findByIdAndUpdate(
+        id, 
+        { $set: updatePayload },
+        { new: true, runValidators: true }
+    ).lean();
     
     if (!updatedQuizFromDb) {
       return NextResponse.json({ message: 'Quiz not found after update' }, { status: 404 });
@@ -83,11 +90,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json(updatedQuiz, { status: 200 });
   } catch (error) {
     console.error('Error updating quiz:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ message: 'Internal Server Error', error: errorMessage }, { status: 500 });
   }
 }
 
-// DELETE: Delete a quiz
+// --- EXPLANATION: Applying the fix to the DELETE handler for consistency. ---
 export async function DELETE(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -96,8 +104,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   try {
     await dbConnect();
-    // EXPLANATION: Finalizing the pattern for the DELETE method.
-    const { id } = context.params;
+    // --- FIX: Awaiting `context.params`. ---
+    const { id } = await context.params;
     const quiz = await Quiz.findById(id);
 
     if (!quiz) {

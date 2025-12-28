@@ -6,11 +6,9 @@ import dbConnect from '@/lib/mongodb';
 import { Quiz, IQuestion } from '@/models/Quiz';
 import mongoose from 'mongoose';
 
-// Define a context type for clarity and type safety
+// Define the specific context type based on the Stack Overflow finding
 interface RouteContext {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 // POST: Create a new question for a quiz
@@ -20,12 +18,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = context.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
-  }
-
   try {
+    const { id } = await context.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
+    }
+
     const body = await req.json();
     const { questionText, questionType, options, correctOptionIndex, correctAnswer } = body;
 
@@ -82,8 +80,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   } catch (error) {
     console.error('Failed to create question', error);
-    if (error instanceof Error) {
-      return NextResponse.json({ message: `Internal Server Error: ${error.message}` }, { status: 500 });
+    if (error instanceof mongoose.Error.CastError) {
+        return NextResponse.json({ message: `Cast Error: ${error.message}` }, { status: 400 });
     }
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
@@ -95,13 +93,13 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
-
-    const { id } = context.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
-    }
-
+    
     try {
+        const { id } = await context.params;
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json({ message: 'Invalid Quiz ID' }, { status: 400 });
+        }
+
         const { questionIds } = await req.json();
 
         if (!Array.isArray(questionIds)) {
