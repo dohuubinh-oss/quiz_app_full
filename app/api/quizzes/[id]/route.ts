@@ -5,17 +5,13 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
 import { Quiz } from '@/models/Quiz';
 
-// The context type remains simple.
 interface RouteContext {
   params: { id: string };
 }
 
-// --- EXPLANATION: The fix suggested by the user's article is being applied. ---
-// The core issue is that `context.params` must be awaited before its properties can be accessed in newer Next.js versions.
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     await dbConnect();
-    // --- FIX: Awaiting `context.params` as per the article's recommendation. ---
     const { id } = await context.params;
     const quizFromDb = await Quiz.findById(id).populate('questions').lean();
 
@@ -39,7 +35,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
-// --- EXPLANATION: Applying the same `await context.params` fix to the PUT handler. ---
 export async function PUT(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -48,7 +43,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     await dbConnect();
-    // --- FIX: Awaiting `context.params`. ---
     const { id } = await context.params;
     const quiz = await Quiz.findById(id);
 
@@ -95,7 +89,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
-// --- EXPLANATION: Applying the fix to the DELETE handler for consistency. ---
 export async function DELETE(request: NextRequest, context: RouteContext) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -104,7 +97,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   try {
     await dbConnect();
-    // --- FIX: Awaiting `context.params`. ---
     const { id } = await context.params;
     const quiz = await Quiz.findById(id);
 
