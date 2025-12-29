@@ -1,33 +1,26 @@
 
 'use client';
 
-import { Typography, Button, Spin, Result, Card } from "antd";
+import { Typography, Button, Result, Card } from "antd";
 import { ArrowLeftOutlined, HomeOutlined } from "@ant-design/icons";
-import { useQuiz } from "@/api/hooks/useQuiz";
 import QuizPreview from "@/components/quiz/QuizPreview";
 import Link from "next/link";
 import Image from "next/image";
+import { IQuiz } from "@/models/Quiz"; // Assuming you have this type definition
 
 const { Title, Paragraph } = Typography;
 
-export default function PublishedQuizPage({ quizId }: { quizId: string }) {
-  const { data: quiz, isLoading: isLoadingQuiz } = useQuiz(quizId);
+// The component now receives the full quiz object, fetched by the server component.
+export default function PublishedQuizPage({ quiz }: { quiz: IQuiz }) {
 
-  if (isLoadingQuiz) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
+  // The server component handles the not found case, but this is a good fallback.
   if (!quiz) {
     return (
       <div className="text-center">
         <Result
           status="404"
           title="Quiz Not Found"
-          subTitle="The quiz you're looking for doesn't exist or has been removed."
+          subTitle="Something went wrong and the quiz data could not be loaded."
           extra={
             <Link href="/quizzes">
               <Button type="primary" icon={<HomeOutlined />}>
@@ -40,6 +33,7 @@ export default function PublishedQuizPage({ quizId }: { quizId: string }) {
     );
   }
 
+  // We can also double-check for publication status on the client, though this is primarily a server concern.
   if (!quiz.isPublished) {
     return (
       <div className="text-center">
@@ -59,6 +53,7 @@ export default function PublishedQuizPage({ quizId }: { quizId: string }) {
     );
   }
 
+  // The questions are now guaranteed to be part of the quiz prop.
   const questions = quiz.questions || [];
 
   return (
@@ -133,6 +128,7 @@ export default function PublishedQuizPage({ quizId }: { quizId: string }) {
           </Card>
         )}
 
+        {/* We now pass the full quiz object and its questions to the preview component */}
         <QuizPreview quiz={quiz} questions={questions} />
       </div>
     </div>

@@ -38,3 +38,5 @@ yarn-error.log*
 
 # User uploaded files
 /public/uploads
+
+.idx/

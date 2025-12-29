@@ -1,17 +1,18 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { Card, Typography, Badge, Button } from "antd";
+import type React from 'react';
+import { Card, Typography, Badge, Button } from 'antd';
 import {
   EditOutlined,
   EyeOutlined,
   CalendarOutlined,
   PlayCircleOutlined,
-} from "@ant-design/icons";
-import Link from "next/link";
-import Image from "next/image";
-import type { Quiz } from "@/lib/types";
-import { useAuth } from "@/lib/auth";
+} from '@ant-design/icons';
+import Link from 'next/link';
+import Image from 'next/image';
+import type { Quiz } from '@/lib/types';
+import { useAuth } from '@/lib/auth';
+import { useEffect, useState } from 'react';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -21,7 +22,14 @@ interface QuizCardProps {
 
 const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
   const { user } = useAuth();
-  const isOwner = user?.id === quiz.author_id;
+  const isOwner = user?.id === quiz.authorId;
+  const [date, setDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (quiz.createdAt) {
+      setDate(new Date(quiz.createdAt).toLocaleDateString());
+    }
+  }, [quiz.createdAt]);
 
   return (
     <div className="group">
@@ -31,7 +39,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
         cover={
           <div className="relative h-48 w-full overflow-hidden">
             <Image
-              src={quiz.cover_image || "/placeholder.svg?height=200&width=400"}
+              src={quiz.coverImage || '/placeholder.svg?height=200&width=400'}
               alt={quiz.title}
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -79,7 +87,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
                     }
                     className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 rounded-xl"
                   >
-                    {quiz.published ? "Take Quiz" : "Preview"}
+                    {quiz.published ? 'Take Quiz' : 'Preview'}
                   </Button>
                 </Link>
               </div>
@@ -106,7 +114,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz }) => {
             <div className="flex items-center space-x-2 text-gray-500">
               <CalendarOutlined className="text-sm" />
               <Text className="text-sm">
-                {new Date(quiz.created_at).toLocaleDateString()}
+                {date}
               </Text>
             </div>
 

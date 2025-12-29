@@ -137,6 +137,7 @@ function EditQuizPage({ quizId }: { quizId: string }) {
 
       message.success('Quiz updated successfully');
       setNewCoverImageFile(null);
+      router.push('/quizzes');
     } catch (error) {
       message.error('Failed to update quiz');
     } finally {

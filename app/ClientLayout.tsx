@@ -1,35 +1,42 @@
-"use client";
+'use client';
 
-import type React from "react";
-import "./globals.css";
-import { Inter } from "next/font/google";
-import { ConfigProvider, Layout, Button, Dropdown, Avatar, App } from "antd";
+import type React from 'react';
+import './globals.css';
+import { Inter } from 'next/font/google';
+import {
+  ConfigProvider,
+  Layout,
+  Button,
+  Dropdown,
+  Avatar,
+  App,
+  Spin,
+} from 'antd';
 import {
   BookOutlined,
   PlusOutlined,
   UserOutlined,
   LogoutOutlined,
-} from "@ant-design/icons";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState } from "react";
-import { theme } from "@/lib/theme";
-import { useAuth, AuthGuard } from "@/lib/auth";
+} from '@ant-design/icons';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { useState } from 'react';
+import { theme } from '@/lib/theme';
+import { useAuth } from '@/lib/auth';
 
 const { Header, Content, Footer } = Layout;
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 function AppHeader() {
-  const pathname = usePathname();
   const { user, signOut } = useAuth();
 
   const userMenu = [
     {
-      key: "logout",
+      key: 'logout',
       icon: <LogoutOutlined />,
-      label: "Sign Out",
+      label: 'Sign Out',
       onClick: signOut,
     },
   ];
@@ -73,7 +80,7 @@ function AppHeader() {
               <Dropdown
                 menu={{ items: userMenu }}
                 placement="bottomRight"
-                trigger={["click"]}
+                trigger={['click']}
               >
                 <Button
                   type="text"
@@ -85,7 +92,7 @@ function AppHeader() {
                     className="bg-gradient-to-r from-blue-500 to-purple-600"
                   />
                   <span className="hidden sm:block text-gray-700 font-medium">
-                    {user.email?.split("@")[0]}
+                    {user.email?.split('@')[0]}
                   </span>
                 </Button>
               </Dropdown>
@@ -112,27 +119,34 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const [queryClient] = useState(() => new QueryClient());
+  const { isAuthenticating } = useAuth();
+
+  if (isAuthenticating) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider theme={theme}>
         <App>
-          <AuthGuard>
-            <Layout className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-              <AppHeader />
-              <Content className="pt-16">
-                <div className="min-h-[calc(100vh-64px)]">{children}</div>
-              </Content>
-              <Footer className="text-center bg-white/50 backdrop-blur-sm border-t border-gray-200/50 py-6">
-                <div className="max-w-7xl mx-auto px-4">
-                  <p className="text-gray-600">
-                    QuizMaster ©{new Date().getFullYear()} - Create, Share, and
-                    Learn with Interactive Quizzes
-                  </p>
-                </div>
-              </Footer>
-            </Layout>
-          </AuthGuard>
+          <Layout className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+            <AppHeader />
+            <Content className="pt-16">
+              <div className="min-h-[calc(100vh-64px)]">{children}</div>
+            </Content>
+            <Footer className="text-center bg-white/50 backdrop-blur-sm border-t border-gray-200/50 py-6">
+              <div className="max-w-7xl mx-auto px-4">
+                <p className="text-gray-600">
+                  QuizMaster ©{new Date().getFullYear()} - Create, Share, and
+                  Learn with Interactive Quizzes
+                </p>
+              </div>
+            </Footer>
+          </Layout>
         </App>
       </ConfigProvider>
       <ReactQueryDevtools initialIsOpen={false} />

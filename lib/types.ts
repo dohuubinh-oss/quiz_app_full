@@ -2,24 +2,24 @@ export type QuestionType = "two_choices" | "four_choices" | "input"
 
 export interface Question {
   id: string
-  quiz_id: string
-  question_text: string
-  question_type: QuestionType
+  quizId: string
+  questionText: string
+  questionType: QuestionType
   options: any
-  correct_answer: string
+  correctAnswer: string
   order: number
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Quiz {
   id: string
   title: string
   description: string
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
   published: boolean
-  cover_image: string | null
-  author_id: string
+  coverImage: string | null
+  authorId: string
   questions?: Question[]
 }

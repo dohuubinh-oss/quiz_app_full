@@ -4,13 +4,12 @@ import type React from 'react';
 import { createContext, useContext, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession, signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react';
-import { Spin } from 'antd';
 import type { User } from 'next-auth';
 
 // Define the shape of the AuthContext
 type AuthContextType = {
   user: User | null;
-  isLoading: boolean;
+  isAuthenticating: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string | undefined; url?: string | null | undefined; ok?: boolean; status?: number; } | undefined>;
   signUp: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
@@ -22,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // AuthProvider component that wraps the application
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const isLoading = status === 'loading';
+  const isAuthenticating = status === 'loading';
   const user = session?.user ?? null;
 
   const signIn = async (email: string, password: string) => {
@@ -57,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
-    isLoading,
+    isAuthenticating,
     signIn,
     signUp,
     signOut,
@@ -81,7 +80,7 @@ export function useAuth() {
 
 // AuthGuard component to protect routes
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isAuthenticating } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -91,18 +90,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         pathname === '/login' ||
         pathname.startsWith('/_next'); // Allow Next.js internal paths
 
-    if (!isLoading && !user && !isPublicRoute) {
+    if (!isAuthenticating && !user && !isPublicRoute) {
       router.push('/login');
     }
-  }, [user, isLoading, router, pathname]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Spin size="large" />
-      </div>
-    );
-  }
+  }, [user, isAuthenticating, router, pathname]);
 
   return <>{children}</>;
 }

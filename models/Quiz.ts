@@ -12,6 +12,7 @@ export interface IOption {
 // This is the core interface for a single question.
 export interface IQuestion {
     // Note: _id is added automatically by Mongoose
+    _id?: Schema.Types.ObjectId;
     questionText: string;
     // questionType helps the frontend decide how to display the question.
     questionType: 'two_choices' | 'four_choices' | 'input';

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       description,
       coverImage,
       questions: [],
-      published: false,
+      isPublished: false,
       authorId: new mongoose.Types.ObjectId(session.user.id),
     };
 
@@ -37,7 +37,17 @@ export async function POST(req: NextRequest) {
     await newQuiz.save();
     
     const quizObj = newQuiz.toObject();
-    const result = { ...quizObj, id: quizObj._id.toString() };
+    const result = {
+      id: quizObj._id.toString(),
+      title: quizObj.title,
+      description: quizObj.description,
+      published: quizObj.isPublished,
+      coverImage: quizObj.coverImage || null,
+      authorId: quizObj.authorId.toString(),
+      createdAt: quizObj.createdAt.toISOString(),
+      updatedAt: quizObj.updatedAt.toISOString(),
+      questions: quizObj.questions,
+    };
 
     return NextResponse.json(result, { status: 201 });
 
@@ -62,14 +72,20 @@ export async function GET(req: NextRequest) {
 
     const total = await Quiz.countDocuments(query);
     const quizzesFromDb = await Quiz.find(query)
+      .select('_id title description isPublished coverImage createdAt authorId') // Select specific fields
       .sort({ _id: -1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .lean();
 
     const quizzes = quizzesFromDb.map(quiz => ({
-      ...quiz,
       id: quiz._id.toString(),
+      title: quiz.title,
+      description: quiz.description,
+      published: quiz.isPublished,
+      coverImage: quiz.coverImage,
+      createdAt: (quiz.createdAt as Date).toISOString(),
+      authorId: quiz.authorId.toString(),
     }));
 
     return NextResponse.json({ data: quizzes, total }, { status: 200 });
