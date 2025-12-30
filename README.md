@@ -1,4 +1,4 @@
-
+lear
 # ⚛️ Next.js Quiz Platform with MongoDB 📝 🚀
 
 Welcome to the Next.js Quiz Platform! This interactive application allows users to create, manage, and share quizzes, now powered by a flexible and scalable backend using Next.js, MongoDB, and NextAuth.js.

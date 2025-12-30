@@ -10,6 +10,7 @@ interface CreateQuestionInput {
   questionText: string;
   options: string[];
   correctOptionIndex: number;
+  explanation?: string;
 }
 
 // Hook để tạo một câu hỏi mới

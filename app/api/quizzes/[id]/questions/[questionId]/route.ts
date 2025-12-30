@@ -3,34 +3,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import dbConnect from '@/lib/mongodb';
-import Quiz from '@/models/Quiz';
+import { Quiz } from '@/models/Quiz';
 import mongoose from 'mongoose';
 
-// Define a context type for clarity and type safety
-interface RouteContext {
-  params: {
-    id: string;
-    questionId: string;
-  };
-}
-
 // PUT: Update a specific question
-export async function PUT(req: NextRequest, context: RouteContext) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string, questionId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // EXPLANATION: Safely extracting IDs from the new context object.
-  // This fixes the 'params should be awaited' error permanently.
-  const { id, questionId } = context.params;
+  const { id, questionId } = params;
   if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(questionId)) {
     return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
   }
 
   try {
     const body = await req.json();
-    const { questionText, questionType, options, correctOptionIndex, correctAnswer } = body;
+    const { questionText, questionType, options, correctOptionIndex, correctAnswer, explanation } = body;
 
     await dbConnect();
     const quiz = await Quiz.findById(id);
@@ -47,9 +37,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: 'Question not found' }, { status: 404 });
     }
 
-    // EXPLANATION: This logic is now complete and handles all question types.
     question.questionText = questionText;
     question.questionType = questionType;
+    question.explanation = explanation;
 
     if (questionType === 'two_choices' || questionType === 'four_choices') {
       if (!options || !Array.isArray(options) || correctOptionIndex === undefined) {
@@ -84,14 +74,13 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 }
 
 // DELETE: Delete a specific question
-export async function DELETE(req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string, questionId: string } }) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // EXPLANATION: Applying the same robust fix to the DELETE method.
-    const { id, questionId } = context.params;
+    const { id, questionId } = params;
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(questionId)) {
         return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
     }
@@ -109,7 +98,6 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
         const question = quiz.questions.id(questionId);
         if (!question) {
-            // If the question is already gone, we can consider the job done.
             return NextResponse.json({ message: 'Question not found' }, { status: 404 });
         }
 

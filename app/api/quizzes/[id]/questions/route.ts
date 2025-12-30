@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
 
     const body = await req.json();
-    const { questionText, questionType, options, correctOptionIndex, correctAnswer } = body;
+    const { questionText, questionType, options, correctOptionIndex, correctAnswer, explanation } = body;
 
     await dbConnect();
     const quiz = await Quiz.findById(id);
@@ -37,13 +37,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    // EXPLANATION: This is the fix. We now create a complete and consistent
-    // object shape for the new question, explicitly clearing unused fields.
-    // This prevents the 'Cast to string failed' error.
     let newQuestion: Partial<IQuestion> = {
         _id: new mongoose.Types.ObjectId(),
         questionText,
         questionType,
+        explanation,
     };
 
     if (questionType === 'two_choices' || questionType === 'four_choices') {

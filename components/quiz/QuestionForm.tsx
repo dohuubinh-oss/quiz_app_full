@@ -23,6 +23,7 @@ const transformDataForForm = (question?: IQuestion & { _id?: string }) => {
       questionType: 'four_choices',
       option_a: '', option_b: '', option_c: '', option_d: '',
       correctAnswer: '',
+      explanation: '',
     };
   }
 
@@ -47,6 +48,7 @@ const transformDataForForm = (question?: IQuestion & { _id?: string }) => {
     questionType: question.questionType,
     ...optionsData,
     correctAnswer: correctAnswerValue,
+    explanation: question.explanation || '',
   };
 };
 
@@ -83,22 +85,16 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
     }
   }, [correctRadio, questionType, setValue]);
 
-  // --- EXPLANATION: THIS IS THE FINAL, CORRECT FIX. ---
-  // The client-side form now creates a payload that perfectly matches what the
-  // server-side API endpoint expects, resolving the 'CastError' permanently.
   const handleFormSubmit = (data: any) => {
-    const { questionText, questionType, correctAnswer } = data;
-    let apiPayload: Partial<IQuestion> & { correctOptionIndex?: number } = { questionText, questionType };
+    const { questionText, questionType, correctAnswer, explanation } = data;
+    let apiPayload: Partial<IQuestion> & { correctOptionIndex?: number } = { questionText, questionType, explanation };
 
     if (questionType === 'two_choices' || questionType === 'four_choices') {
         const options = (questionType === 'two_choices')
             ? [data.option_a, data.option_b]
             : [data.option_a, data.option_b, data.option_c, data.option_d];
         
-        // The API now expects an array of simple strings for the options.
         apiPayload.options = options;
-        
-        // The API also expects the index of the correct option.
         apiPayload.correctOptionIndex = ['a', 'b', 'c', 'd'].indexOf(data.correctAnswer);
 
     } else if (questionType === 'input') {
@@ -210,6 +206,26 @@ const QuestionForm: React.FC<QuestionFormProps> = ({
                 )}
               />
             )}
+
+            {/* Explanation Field */}
+            <Controller
+              name="explanation"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Form.Item
+                  label={<span className="text-gray-700 font-semibold text-lg">💡 Explanation</span>}
+                  validateStatus={fieldState.error ? 'error' : ''}
+                  help={fieldState.error?.message}
+                >
+                  <TextArea
+                    {...field}
+                    rows={3}
+                    placeholder="Explain why the answer is correct (optional)"
+                    className="text-lg border-2 border-gray-200 rounded-2xl hover:border-blue-400 focus:border-blue-500 transition-all duration-300 shadow-sm focus:shadow-lg"
+                  />
+                </Form.Item>
+              )}
+            />
           </div>
 
           {/* Action Buttons */}

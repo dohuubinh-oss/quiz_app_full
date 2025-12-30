@@ -20,6 +20,7 @@ export interface IQuestion {
     options?: IOption[];
     // `correctAnswer` is used exclusively for 'input' type questions.
     correctAnswer?: string;
+    explanation?: string;
 }
 
 // This interface represents the entire Quiz document.
@@ -45,7 +46,7 @@ const QuestionSchema = new Schema<IQuestion>({
     questionText: { type: String, required: true },
     // EXPLANATION: Added `questionType` to differentiate between question formats.
     questionType: { type: String, required: true, enum: ['two_choices', 'four_choices', 'input'] },
-    // EXPLANATION: `options` are not required for 'input' questions, so the array is optional.
+    // EXPLANATION: `options` are not required for 'input' questions, the array is optional.
     options: {
         type: [OptionSchema],
         required: false, // Not required for input type
@@ -54,6 +55,10 @@ const QuestionSchema = new Schema<IQuestion>({
     correctAnswer: {
         type: String,
         required: false, // Only required if questionType is 'input'
+    },
+    explanation: {
+        type: String,
+        required: false,
     }
 });
 
