@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSortable } from '@dnd-kit/sortable';
@@ -8,10 +9,11 @@ import {
   DeleteOutlined,
   MenuOutlined,
   CheckCircleOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import type { IQuestion } from '@/models/Quiz';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 interface SortableQuestionProps {
   question: IQuestion & { id: string };
@@ -43,9 +45,6 @@ export function SortableQuestion({
       default: return <Tag>Unknown</Tag>;
     }
   };
-
-  // The getSortedOptions function is no longer needed because the `question.options` array 
-  // from the API is already in the correct A, B, C, D order.
 
   return (
     <div ref={setNodeRef} style={style} className="mb-6">
@@ -105,6 +104,18 @@ export function SortableQuestion({
                       <CheckCircleOutlined className="text-green-500 text-lg" />
                       <span className="font-medium text-green-800">{question.correctAnswer}</span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {question.explanation && (
+                <div className="mt-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <InfoCircleOutlined className="text-blue-500 text-lg" />
+                    <Text className="text-sm font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">Explanation</Text>
+                  </div>
+                  <div className="p-4 bg-green-100 border-2 border-blue-500 rounded-xl">
+                     <Paragraph className="text-green-900 mb-0 font-bold">{question.explanation}</Paragraph>
                   </div>
                 </div>
               )}

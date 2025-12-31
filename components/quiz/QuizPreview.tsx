@@ -12,6 +12,7 @@ import {
   TrophyOutlined,
   MehOutlined,
   SmileOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 
 const { Title, Paragraph, Text } = Typography;
@@ -184,6 +185,18 @@ const QuizPreview: React.FC<QuizPreviewProps> = ({
                                 <Text className="text-green-800 font-bold">{question.correctAnswer}</Text>
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {question.explanation && (
+                          <div className="mt-8">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <InfoCircleOutlined className="text-blue-500 text-lg" />
+                              <Text className="text-sm font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">Giải Thích</Text>
+                            </div>
+                            <div className="p-4 bg-green-100 border-2 border-blue-500 rounded-xl">
+                               <Paragraph className="text-green-900 mb-0 font-bold">{question.explanation}</Paragraph>
+                            </div>
                           </div>
                         )}
                       </div>

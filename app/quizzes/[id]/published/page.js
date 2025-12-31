@@ -54,6 +54,7 @@ async function getQuiz(quizId) {
         questionType: q.questionType,
         correctAnswer: finalCorrectAnswer,
         options: serializedOptions, 
+        explanation: q.explanation, // THE FIX: Include the explanation field
       };
     }).filter(Boolean),
   };
