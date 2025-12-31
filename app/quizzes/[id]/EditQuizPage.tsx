@@ -39,6 +39,7 @@ import {
 } from '@/api/hooks/useQuestions';
 import QuestionForm from '@/components/quiz/QuestionForm';
 import SortableQuestionList from '@/components/quiz/SortableQuestionList';
+import WordQuestionImporter from '@/components/quiz/WordQuestionImporter';
 import type { IQuestion } from '@/models/Quiz';
 import { useAuth } from '@/lib/auth';
 import Image from 'next/image';
@@ -68,7 +69,7 @@ function EditQuizPage({ quizId }: { quizId: string }) {
   const { user } = useAuth();
   const { message } = App.useApp();
 
-  const { data: quiz, isLoading: isLoadingQuiz } = useQuiz(quizId);
+  const { data: quiz, isLoading: isLoadingQuiz, refetch: refetchQuiz } = useQuiz(quizId);
 
   const updateQuizMutation = useUpdateQuiz();
   const togglePublishMutation = useTogglePublishQuiz();
@@ -270,6 +271,10 @@ function EditQuizPage({ quizId }: { quizId: string }) {
     } catch (error) {
       message.error('Failed to reorder questions');
     }
+  };
+
+  const handleImportSuccess = () => {
+    refetchQuiz();
   };
 
   if (isLoadingQuiz) {
@@ -485,15 +490,18 @@ function EditQuizPage({ quizId }: { quizId: string }) {
                 <Title level={3} className="mb-2 text-gray-800">Questions ({questions.length})</Title>
                 <Paragraph className="text-gray-600 mb-0">Drag questions to reorder them</Paragraph>
               </div>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAddQuestion}
-                size="large"
-                className="bg-gradient-to-r from-green-500 to-blue-500 border-0 hover:shadow-lg hover:scale-105 transition-all duration-200"
-              >
-                Add Question
-              </Button>
+              <div className="flex items-center gap-3">
+                <WordQuestionImporter quizId={quizId} onImportSuccess={handleImportSuccess} />
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAddQuestion}
+                  size="large"
+                  className="bg-gradient-to-r from-green-500 to-blue-500 border-0 hover:shadow-lg hover:scale-105 transition-all duration-200"
+                >
+                  Add Question
+                </Button>
+              </div>
             </div>
           </div>
 

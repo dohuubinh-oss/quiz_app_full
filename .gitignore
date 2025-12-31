@@ -25,7 +25,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # NOTE: .env.local is intentionally NOT ignored as per user request for this draft project.
-# .env.local 
+.env.local 
 .env.development.local
 .env.test.local
 .env.production.local
