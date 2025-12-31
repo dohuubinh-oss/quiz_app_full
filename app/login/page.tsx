@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
-import { Card, Form, Input, Button, Typography, Divider, App } from 'antd';
+import { Card, Form, Input, Button, Typography, Divider, App, Spin } from 'antd';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
@@ -10,10 +10,22 @@ const { Title, Text } = Typography;
 
 export default function LoginPage() {
   const { message } = App.useApp();
-  const { signIn, signUp } = useAuth();
+  // 1. Lấy thêm user và isAuthenticating từ hook
+  const { signIn, signUp, user, isAuthenticating } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // 2. Thêm useEffect để xử lý chuyển hướng
+  useEffect(() => {
+    // Chờ cho đến khi quá trình xác thực hoàn tất
+    if (!isAuthenticating) {
+      // Nếu người dùng đã đăng nhập, chuyển hướng họ đi
+      if (user) {
+        router.push('/quizzes');
+      }
+    }
+  }, [user, isAuthenticating, router]);
 
   const onFinish = async (values: { email: string; password: string }) => {
     setLoading(true);
@@ -25,14 +37,16 @@ export default function LoginPage() {
           message.error(result.error);
         } else {
           message.success('Account created! Please sign in.');
-          setIsSignUp(false); // Switch to sign-in form
+          setIsSignUp(false); // Chuyển về form đăng nhập
         }
       } else {
         const result = await signIn(values.email, values.password);
         if (result?.error) {
-          message.error('Invalid email or password'); // Generic message for security
+          message.error('Invalid email or password');
         } else {
           message.success('Login successful!');
+          // Việc chuyển hướng chính sẽ do useEffect ở trên xử lý
+          // nhưng chúng ta vẫn có thể giữ lại để tăng tốc độ trong trường hợp này
           router.push('/quizzes');
         }
       }
@@ -43,6 +57,16 @@ export default function LoginPage() {
     }
   };
 
+  // 3. Hiển thị màn hình chờ để tránh "nháy" giao diện
+  if (isAuthenticating || user) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  // Chỉ hiển thị form đăng nhập nếu người dùng chưa đăng nhập
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">

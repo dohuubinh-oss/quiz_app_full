@@ -87,6 +87,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Public routes that do not require authentication
     const isPublicRoute = 
+        pathname === '/' || // Allow access to the home page
         pathname === '/login' ||
         pathname.startsWith('/_next'); // Allow Next.js internal paths
 

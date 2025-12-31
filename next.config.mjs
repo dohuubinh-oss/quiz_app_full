@@ -15,18 +15,15 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '*.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.supabase.in',
+        hostname: 'storage.googleapis.com',
+        pathname: '/gemini-prod/images/**',
       },
     ],
-    unoptimized: true,
   },
   experimental: {
     optimizePackageImports: ['antd', '@ant-design/icons'],
   },
+  allowedDevOrigins: ['https://3000-firebase-quizappmongo-1766828002708.cluster-fkltigo73ncaixtmokrzxhwsfc.cloudworkstations.dev'],
 }
 
 export default nextConfig

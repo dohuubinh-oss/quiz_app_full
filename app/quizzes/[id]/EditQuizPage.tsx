@@ -382,7 +382,7 @@ function EditQuizPage({ quizId }: { quizId: string }) {
           </div>
         </div>
 
-        <Card className="mb-8 shadow-sm border-0 rounded-2xl overflow-hidden bg-white">
+        <Card variant="borderless" className="mb-8 shadow-sm rounded-2xl overflow-hidden bg-white">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 border-b border-gray-100">
             <Title level={3} className="mb-2 text-gray-800">
               Quiz Details
@@ -483,7 +483,7 @@ function EditQuizPage({ quizId }: { quizId: string }) {
           </div>
         </Card>
 
-        <Card className="shadow-sm border-0 rounded-2xl overflow-hidden bg-white">
+        <Card variant="borderless" className="shadow-sm rounded-2xl overflow-hidden bg-white">
           <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 border-b border-gray-100">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
