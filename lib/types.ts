@@ -23,3 +23,11 @@ export interface Quiz {
   authorId: string
   questions?: Question[]
 }
+
+export interface Post {
+  slug: string;
+  title: string;
+  date: string;
+  imageUrl: string;
+  content: string;
+}

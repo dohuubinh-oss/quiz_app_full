@@ -89,6 +89,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const isPublicRoute = 
         pathname === '/' || // Allow access to the home page
         pathname === '/login' ||
+        pathname.startsWith('/blog') || // Allow access to blog pages
         pathname.startsWith('/_next'); // Allow Next.js internal paths
 
     if (!isAuthenticating && !user && !isPublicRoute) {
